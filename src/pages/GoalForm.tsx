@@ -49,10 +49,9 @@ export default function GoalForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setErrors({}); // Clear old errors
+    setErrors({});
 
     try {
-      // Step 2: Send data
       await storeGoal({
         name: formData.name,
         email: formData.email,
@@ -77,7 +76,6 @@ export default function GoalForm() {
 
       setIsSubmitted(true);
 
-      // Reset form
       setFormData({
         name: "",
         email: "",
@@ -96,10 +94,16 @@ export default function GoalForm() {
       });
     } catch (err: any) {
       if (err.response && err.response.status === 422) {
-        // Laravel validation errors
         setErrors(err.response.data.errors || {});
+      } else if (err.response && err.response.status === 500) {
+        
+        if (err.response.data.message?.includes("Duplicate entry")) {
+          setErrors({ email: ["The email has already been taken."] });
+        } else {
+          console.error("Server error:", err.response.data.message);
+        }
       } else {
-        console.error("Error submitting goal:", err);
+        console.error("Error submitting goal plan form:", err);
       }
     } finally {
       setLoading(false);
@@ -129,42 +133,53 @@ export default function GoalForm() {
                 Your Plan is Ready!
               </h1>
               <p className="text-lg text-gray-300 mb-8">
-                Thank you, {formData.name}! We've received your information and will create a personalized fitness and nutrition plan
-                tailored specifically to your goals and preferences.
+                Thank you, {formData.name}! We've received your information and
+                will create a personalized fitness and nutrition plan tailored
+                specifically to your goals and preferences.
               </p>
             </div>
 
             <div className="bg-gradient-to-r from-red-900/30 to-gray-800/30 rounded-xl p-6 mb-8 border border-red-800/30">
-              <h2 className="text-xl font-semibold text-white mb-4">What's Next?</h2>
+              <h2 className="text-xl font-semibold text-white mb-4">
+                What's Next?
+              </h2>
               <div className="space-y-3 text-left">
                 <div className="flex items-center">
                   <CheckCircle className="h-5 w-5 text-green-400 mr-3 flex-shrink-0" />
-                  <span className="text-gray-300">Your information has been saved securely</span>
+                  <span className="text-gray-300">
+                    Your information has been saved securely
+                  </span>
                 </div>
                 <div className="flex items-center">
                   <CheckCircle className="h-5 w-5 text-green-400 mr-3 flex-shrink-0" />
-                  <span className="text-gray-300">Our experts will review your goals</span>
+                  <span className="text-gray-300">
+                    Our experts will review your goals
+                  </span>
                 </div>
                 <div className="flex items-center">
                   <CheckCircle className="h-5 w-5 text-green-400 mr-3 flex-shrink-0" />
-                  <span className="text-gray-300">Custom plan will be sent to {formData.email}</span>
+                  <span className="text-gray-300">
+                    Custom plan will be sent to {formData.email}
+                  </span>
                 </div>
                 <div className="flex items-center">
                   <CheckCircle className="h-5 w-5 text-green-400 mr-3 flex-shrink-0" />
-                  <span className="text-gray-300">24/7 support access activated</span>
+                  <span className="text-gray-300">
+                    24/7 support access activated
+                  </span>
                 </div>
               </div>
             </div>
 
             <div className="space-y-4">
               <button
-                onClick={() => window.location.href = '/exercises'}
+                onClick={() => (window.location.href = "/exercises")}
                 className="w-full bg-red-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-red-700 transition-colors duration-200"
               >
                 Browse Exercise Library
               </button>
               <button
-                onClick={() => window.location.href = '/'}
+                onClick={() => (window.location.href = "/")}
                 className="w-full border-2 border-red-600 text-red-400 py-3 px-6 rounded-lg font-semibold hover:bg-red-900/30 transition-colors duration-200"
               >
                 Return Home
@@ -173,7 +188,7 @@ export default function GoalForm() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -622,9 +637,6 @@ export default function GoalForm() {
                 />
               </div>
 
-
-
-
               {/* Review Section */}
               <div className="bg-red-900/20 border border-red-800/30 rounded-lg p-4">
                 <h3 className="font-medium text-red-400 mb-3">
@@ -691,11 +703,12 @@ export default function GoalForm() {
             </div>
           )}
 
-
           {/* Errors Display */}
           {Object.keys(errors).length > 0 && (
             <div className="bg-red-900/40 border border-red-700 text-red-300 p-4 rounded-lg mb-4">
-              <h4 className="font-semibold mb-2">Please fix the following errors:</h4>
+              <h4 className="font-semibold mb-2">
+                Please fix the following errors:
+              </h4>
               <ul className="list-disc pl-5 space-y-1">
                 {Object.entries(errors).map(([field, messages]) => (
                   <li key={field}>{messages[0]}</li>
