@@ -25,7 +25,7 @@ import UserPage from "./pages/User";
 function App() {
   return (
     <AuthProvider>
-      <Router>
+      
         <div className="min-h-screen flex flex-col">
           <Routes>
             {/* Admin Routes */}
@@ -103,7 +103,7 @@ function App() {
             />
           </Routes>
         </div>
-      </Router>
+      
     </AuthProvider>
   );
 }

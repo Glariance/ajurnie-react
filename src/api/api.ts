@@ -4,7 +4,8 @@ import axios, { type AxiosInstance } from "axios";
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/";
 
 const api: AxiosInstance = axios.create({
-  baseURL: API_URL,
+  // baseURL: API_URL,
+  baseURL: "http://localhost:8000",
   timeout: 10000,
   withCredentials: true, // required for Sanctum cookies
   headers: {
@@ -52,6 +53,7 @@ export async function register(userData: {
   password: string;
   password_confirmation: string;
   role: "novice" | "trainer";
+
 }): Promise<any> {
 
   await getCsrfCookie(); // Step 1: fetch CSRF cookie

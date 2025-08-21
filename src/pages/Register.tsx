@@ -1,5 +1,8 @@
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
+import { useStripe, useElements, CardElement } from "@stripe/react-stripe-js";
+import { register } from "../api/api";
+
 import {
   User,
   Mail,
@@ -9,15 +12,19 @@ import {
   CheckCircle,
   AlertCircle,
 } from "lucide-react";
-import { register } from "../api/api"; // <-- Import our API register function
 
 export default function Register() {
+  const stripe = useStripe();
+  const elements = useElements();
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     fullname: "",
     email: "",
     password: "",
     password_confirmation: "",
     role: "novice",
+    payment_method: "", // Stripe card id
   });
 
   const [selectedRole, setSelectedRole] = useState("novice");
@@ -26,23 +33,34 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
-  const navigate = useNavigate();
 
   const roleOptions = [
     {
       value: "novice",
       title: "Novice Membership",
       description: "$21.99/year",
-      features: ["Access to personalized workout & meal plans", "Progress tracking dashboard", "Full exercise library", "Trainer support"],
-      price: "$9.99/month after trial",
+      features: [
+        "Access to personalized workout & meal plans",
+        "Progress tracking dashboard",
+        "Full exercise library",
+        "Trainer support",
+      ],
+      priceLabel: "$9.99/month after trial", // label for UI
+      priceId: "price_1QabcdXYZ123", // 👈 actual Stripe Price ID
       icon: <User className="h-6 w-6 text-red-500" />,
     },
     {
       value: "trainer",
       title: "Certified Trainer",
       description: "$34.99/year",
-      features: ["Includes all Novice features", "Client management tools", "Program creation & delivery", "Platform to grow your coaching business"],
-      price: "$19.99/month after trial",
+      features: [
+        "Includes all Novice features",
+        "Client management tools",
+        "Program creation & delivery",
+        "Platform to grow your coaching business",
+      ],
+      priceLabel: "$19.99/month after trial",
+      priceId: "price_1QwxyzLMN456", // 👈 actual Stripe Price ID
       icon: <User className="h-6 w-6 text-red-500" />,
     },
   ];
@@ -57,56 +75,77 @@ export default function Register() {
     setError("");
     setSuccess(false);
 
+    if (!stripe || !elements) {
+      setError("Stripe has not loaded yet. Please try again.");
+      setLoading(false);
+      return;
+    }
+
+    // 1. Create payment method
+    const { error: stripeError, paymentMethod } =
+      await stripe.createPaymentMethod({
+        type: "card",
+        card: elements.getElement(CardElement)!,
+      });
+
+    if (stripeError) {
+      console.error(stripeError);
+      setError(stripeError.message || "Payment method failed.");
+      setLoading(false);
+      return;
+    }
+
     try {
+      // 2. Call your centralized API function
       const data = await register({
         fullname: formData.fullname,
         email: formData.email,
         password: formData.password,
         password_confirmation: formData.password_confirmation,
         role: selectedRole as "novice" | "trainer",
-      });
+        payment_method: paymentMethod.id, // 👈 send Stripe card id
+      } as any);
+
+      console.log("Registration + payment success:", data);
 
       setSuccess(true);
-
       setFormData({
         fullname: "",
         email: "",
         password: "",
         password_confirmation: "",
         role: "novice",
+        payment_method: "",
       });
-      
       setSelectedRole("novice");
 
       setTimeout(() => {
         navigate("/login");
       }, 3000);
-      
     } catch (err: any) {
       console.error(err);
       setError(
         err?.response?.data?.message ||
+          err.message ||
           "Registration failed. Please check your details."
       );
     } finally {
       setLoading(false);
     }
   };
-
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center px-4 py-8">
       <div className="max-w-4xl w-full">
         <div className="bg-gray-800 rounded-lg shadow-xl p-8 border border-gray-700">
-          {/* Success Screen */}
-          {
-          success ? (
+          {success ? (
             <div className="text-center">
               <CheckCircle className="h-16 w-16 text-green-400 mx-auto mb-4" />
               <h2 className="text-2xl font-bold text-white mb-4">
-              Thank you for registering!
+                Thank you for registering!
               </h2>
               <p className="text-gray-300 mb-6">
-              Your account has been created. We appreciate you joining Ajurnie.
+                Your account has been created. We appreciate you joining
+                Ajurnie.
               </p>
               <p className="text-gray-400">Redirecting to login...</p>
             </div>
@@ -119,9 +158,19 @@ export default function Register() {
                   alt="Ajurnie"
                   className="h-12 w-auto mx-auto mb-4"
                 />
-                <h2 className="text-2xl font-bold text-white">Create Account</h2>
+                <h2 className="text-2xl font-bold text-white">
+                  Create Account
+                </h2>
                 <p className="text-gray-400">
-                  Try our gym classes free! Experience the energy, the trainers, and the results then choose your plan: <span className="text-red-400"> <br></br> Novice Membership for just $9.99/month</span> or <span className="text-red-400">Certified Trainer for only $19.99/month</span>
+                  Try our gym classes free! Experience the energy, the trainers,
+                  and the results then choose your plan:{" "}
+                  <span className="text-red-400">
+                    Novice Membership $9.99/month
+                  </span>{" "}
+                  or{" "}
+                  <span className="text-red-400">
+                    Certified Trainer $19.99/month
+                  </span>
                 </p>
               </div>
 
@@ -144,6 +193,7 @@ export default function Register() {
                         setFormData((prev) => ({
                           ...prev,
                           role: option.value,
+                          priceId: option.priceId,
                         }));
                       }}
                     >
@@ -161,9 +211,7 @@ export default function Register() {
                           {option.title}
                         </h4>
                       </div>
-                      <p className="text-gray-300 mb-4">
-                        {option.description}
-                      </p>
+                      <p className="text-gray-300 mb-4">{option.description}</p>
                       <ul className="space-y-2 mb-4">
                         {option.features.map((feature, index) => (
                           <li
@@ -308,6 +356,20 @@ export default function Register() {
                   </div>
                 </div>
 
+                {/* Card Input */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Card Details
+                  </label>
+                  <div className="p-3 bg-gray-700 border border-gray-600 rounded-lg">
+                    <CardElement
+                      options={{
+                        style: { base: { color: "#fff", fontSize: "16px" } },
+                      }}
+                    />
+                  </div>
+                </div>
+
                 {/* Submit */}
                 <div className="md:col-span-2">
                   <button
@@ -326,8 +388,7 @@ export default function Register() {
                 </div>
               </form>
             </>
-          )
-          }
+          )}
         </div>
       </div>
     </div>
