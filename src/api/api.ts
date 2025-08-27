@@ -4,9 +4,9 @@ import axios, { type AxiosInstance } from "axios";
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/";
 
 const api: AxiosInstance = axios.create({
-  // baseURL: API_URL,
-  baseURL: "http://localhost:8000",
-  timeout: 10000,
+  baseURL: API_URL,
+  // baseURL: "http://localhost:8000",
+  timeout: 30000,
   withCredentials: true, // required for Sanctum cookies
   headers: {
     "Content-Type": "application/json",
