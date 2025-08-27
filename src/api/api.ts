@@ -53,6 +53,8 @@ export async function register(userData: {
   password: string;
   password_confirmation: string;
   role: "novice" | "trainer";
+  payment_method: string;
+  interval: "monthly" | "yearly";
 
 }): Promise<any> {
 

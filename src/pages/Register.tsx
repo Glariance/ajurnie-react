@@ -25,7 +25,11 @@ export default function Register() {
     password_confirmation: "",
     role: "novice",
     payment_method: "", // Stripe card id
+    interval: "yearly",
   });
+
+  // Check if user is Post Founding (>= Jan 1, 2026)
+  const isPostFounding = new Date() >= new Date("2026-01-01T00:00:00");
 
   const [selectedRole, setSelectedRole] = useState("novice");
   const [showPassword, setShowPassword] = useState(false);
@@ -34,36 +38,90 @@ export default function Register() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
 
-  const roleOptions = [
-    {
-      value: "novice",
-      title: "Novice Membership",
-      description: "$21.99/year",
-      features: [
-        "Access to personalized workout & meal plans",
-        "Progress tracking dashboard",
-        "Full exercise library",
-        "Trainer support",
-      ],
-      priceLabel: "$9.99/month after trial", // label for UI
-      priceId: "price_1QabcdXYZ123", // 👈 actual Stripe Price ID
-      icon: <User className="h-6 w-6 text-red-500" />,
-    },
-    {
-      value: "trainer",
-      title: "Certified Trainer",
-      description: "$34.99/year",
-      features: [
-        "Includes all Novice features",
-        "Client management tools",
-        "Program creation & delivery",
-        "Platform to grow your coaching business",
-      ],
-      priceLabel: "$19.99/month after trial",
-      priceId: "price_1QwxyzLMN456", // 👈 actual Stripe Price ID
-      icon: <User className="h-6 w-6 text-red-500" />,
-    },
-  ];
+  // Utility: check if user is Founding Member (before Jan 1, 2026)
+  const isFoundingMember = new Date() < new Date("2026-01-01");
+
+  const roleOptions = isFoundingMember
+    ? [
+        // 👉 Founding Members (until Dec 31, 2025)
+        {
+          value: "novice",
+          title: "Novice Membership",
+          description: "$21.99/year (Founding Offer)",
+          features: [
+            "Access to personalized workout & meal plans",
+            "Progress tracking dashboard",
+            "Full exercise library",
+            "Trainer support",
+          ],
+          priceLabel: "Special Founding Price $21.99/year",
+          priceKey: "founding_novice_yearly", // 👈 maps to services.php
+          interval: "yearly",
+          icon: <User className="h-6 w-6 text-red-500" />,
+        },
+        {
+          value: "trainer",
+          title: "Certified Trainer",
+          description: "$34.99/year (Founding Offer)",
+          features: [
+            "Includes all Novice features",
+            "Client management tools",
+            "Program creation & delivery",
+            "Platform to grow your coaching business",
+          ],
+          priceLabel: "Special Founding Price $34.99/year",
+          priceKey: "founding_trainer_yearly", // 👈 maps to services.php
+          interval: "yearly",
+          icon: <User className="h-6 w-6 text-red-500" />,
+        },
+      ]
+    : [
+        // 👉 Post Founding Members (from Jan 1, 2026 onwards)
+        {
+          value: "novice",
+          title: "Novice Membership",
+          description: "$4.99/month or $46.99/year",
+          features: [
+            "Access to personalized workout & meal plans",
+            "Progress tracking dashboard",
+            "Full exercise library",
+            "Trainer support",
+          ],
+          monthly: {
+            priceLabel: "$4.99/month",
+            priceKey: "post_novice_monthly", // 👈 maps to services.php
+            interval: "monthly",
+          },
+          yearly: {
+            priceLabel: "$46.99/year",
+            priceKey: "post_novice_yearly", // 👈 maps to services.php
+            interval: "yearly",
+          },
+          icon: <User className="h-6 w-6 text-red-500" />,
+        },
+        {
+          value: "trainer",
+          title: "Certified Trainer",
+          description: "$8.99/month or $89.99/year",
+          features: [
+            "Includes all Novice features",
+            "Client management tools",
+            "Program creation & delivery",
+            "Platform to grow your coaching business",
+          ],
+          monthly: {
+            priceLabel: "$8.99/month",
+            priceKey: "post_trainer_monthly", // 👈 maps to services.php
+            interval: "monthly",
+          },
+          yearly: {
+            priceLabel: "$89.99/year",
+            priceKey: "post_trainer_yearly", // 👈 maps to services.php
+            interval: "yearly",
+          },
+          icon: <User className="h-6 w-6 text-red-500" />,
+        },
+      ];
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -104,6 +162,7 @@ export default function Register() {
         password_confirmation: formData.password_confirmation,
         role: selectedRole as "novice" | "trainer",
         payment_method: paymentMethod.id, // 👈 send Stripe card id
+        interval: formData.interval as "monthly" | "yearly", // 👈 send selected interval
       } as any);
 
       console.log("Registration + payment success:", data);
@@ -116,6 +175,7 @@ export default function Register() {
         password_confirmation: "",
         role: "novice",
         payment_method: "",
+        interval: "yearly",
       });
       setSelectedRole("novice");
 
@@ -133,6 +193,7 @@ export default function Register() {
       setLoading(false);
     }
   };
+  
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center px-4 py-8">
       <div className="max-w-4xl w-full">
@@ -165,11 +226,11 @@ export default function Register() {
                   Try our gym classes free! Experience the energy, the trainers,
                   and the results then choose your plan:{" "}
                   <span className="text-red-400">
-                    Novice Membership $9.99/month
+                    Novice Membership $4.99/month
                   </span>{" "}
                   or{" "}
                   <span className="text-red-400">
-                    Certified Trainer $19.99/month
+                    Certified Trainer $8.99/month
                   </span>
                 </p>
               </div>
@@ -265,6 +326,28 @@ export default function Register() {
                     />
                   </div>
                 </div>
+
+                {/* Membership Interval */}
+                {isPostFounding && (
+                  <div>
+                    <label
+                      htmlFor="interval"
+                      className="block text-sm font-medium text-gray-300 mb-2"
+                    >
+                      Membership Interval
+                    </label>
+                    <select
+                      id="interval"
+                      name="interval"
+                      value={formData.interval}
+                      onChange={handleChange}
+                      className="w-full pl-3 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-white"
+                    >
+                      <option value="monthly">Monthly</option>
+                      <option value="yearly">Yearly</option>
+                    </select>
+                  </div>
+                )}
 
                 {/* Email */}
                 <div>
