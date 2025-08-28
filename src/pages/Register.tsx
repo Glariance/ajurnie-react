@@ -462,7 +462,8 @@ export default function Register() {
                   >
                     {loading
                       ? "Creating Account..."
-                      : `Start 7-Day Free Trial as ${
+                      // : `Start 7-Day Free Trial as ${
+                      : `Register as ${
                           selectedRole === "novice"
                             ? "Novice Member"
                             : "Certified Trainer"

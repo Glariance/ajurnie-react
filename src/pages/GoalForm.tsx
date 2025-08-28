@@ -9,6 +9,8 @@ import {
   ArrowRight,
 } from "lucide-react";
 
+
+
 export default function GoalForm() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitted, setIsSubmitted] = useState(false);
