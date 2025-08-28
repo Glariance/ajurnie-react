@@ -1,11 +1,12 @@
 import axios, { type AxiosInstance } from "axios";
 
 // Get API URL from environment or default to localhost
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/";
+// const API_URL = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_URL_LOCAL;
 
 const api: AxiosInstance = axios.create({
-  baseURL: API_URL,
-  // baseURL: "http://localhost:8000",
+  baseURL: import.meta.env.MODE === "development"
+    ? import.meta.env.VITE_API_URL_LOCAL
+    : import.meta.env.VITE_API_URL,
   timeout: 30000,
   withCredentials: true, // required for Sanctum cookies
   headers: {
