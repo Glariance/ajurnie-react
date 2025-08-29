@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { storeGoal } from "../api/api";
+import useSession from "../hooks/useSession";
+
 import {
   User,
   Target,
@@ -12,6 +14,9 @@ import {
 
 
 export default function GoalForm() {
+
+   const { user, logout } = useSession();
+
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -199,7 +204,7 @@ export default function GoalForm() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">
-            Get Your Personalized Plan
+            Get Your Personalized Plan {user ? `, ${user.fullname}` : ""}
           </h1>
           <p className="text-gray-400">
             Tell us about yourself and we'll create a custom fitness and
