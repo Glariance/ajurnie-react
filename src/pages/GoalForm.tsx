@@ -11,11 +11,8 @@ import {
   ArrowRight,
 } from "lucide-react";
 
-
-
 export default function GoalForm() {
-
-   const { user, logout } = useSession();
+  const { user, logout } = useSession();
 
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -36,6 +33,7 @@ export default function GoalForm() {
     medicalConditions: "",
     dietaryPreferences: [],
     foodAllergies: "",
+    user_id: user?.id || "",
   });
 
   const totalSteps = 3;
@@ -79,6 +77,7 @@ export default function GoalForm() {
         dietary_preferences: formData.dietaryPreferences,
         food_allergies: formData.foodAllergies || null,
         plan_generated: false,
+        user_id: user?.id || null,
       });
 
       setIsSubmitted(true);
@@ -98,12 +97,12 @@ export default function GoalForm() {
         medicalConditions: "",
         dietaryPreferences: [],
         foodAllergies: "",
+        user_id: user?.id || "",
       });
     } catch (err: any) {
       if (err.response && err.response.status === 422) {
         setErrors(err.response.data.errors || {});
       } else if (err.response && err.response.status === 500) {
-        
         if (err.response.data.message?.includes("Duplicate entry")) {
           setErrors({ email: ["The email has already been taken."] });
         } else {
@@ -245,6 +244,7 @@ export default function GoalForm() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Full Name *
@@ -258,6 +258,13 @@ export default function GoalForm() {
                     className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-white placeholder-gray-400"
                     placeholder="Enter your full name"
                   />
+
+                  <input
+                    type="hidden"
+                    name="user_id"
+                    value={formData.user_id}
+                  />
+
                 </div>
 
                 <div>
