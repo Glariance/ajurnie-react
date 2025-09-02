@@ -1,37 +1,59 @@
-import React, { useState, useEffect } from 'react'
-import { useAuth } from '../contexts/AuthContext'
-import { 
-  Calendar, 
-  Target, 
-  TrendingUp, 
-  Users, 
-  DollarSign, 
-  BookOpen,
-  Clock,
-  Award
-} from 'lucide-react'
+import React, { useState, useEffect } from "react";
+import api from "../api/api"; // ✅ use your centralized API instance
+import useSession from "../hooks/useSession"; 
 
-// Mock data for dashboard
+import {
+  Calendar,
+  Target,
+  TrendingUp,
+  Award,
+} from "lucide-react";
+
+// Mock data for right-side content
 const mockData = {
-  coupons: [
-    { id: 1, code: 'SUMMER20', discount: '20%', valid_until: '2024-12-31' },
-    { id: 2, code: 'NEWUSER10', discount: '10%', valid_until: '2024-12-31' }
-  ],
   events: [
-    { id: 1, title: 'Fitness Workshop', date: '2024-12-15', attendees: 25 },
-    { id: 2, title: 'Nutrition Seminar', date: '2024-12-20', attendees: 18 }
+    { id: 1, title: "Fitness Workshop", date: "2024-12-15", attendees: 25 },
+    { id: 2, title: "Nutrition Seminar", date: "2024-12-20", attendees: 18 },
   ],
-  earnings: { total: 1250, this_month: 320, last_month: 280 },
-  classes: [
-    { id: 1, name: 'Yoga Basics', students: 15, rating: 4.8 },
-    { id: 2, name: 'HIIT Training', students: 22, rating: 4.9 }
-  ],
-  enrollments: { total: 45, this_month: 12, pending: 3 }
-}
+};
 
 export default function Dashboard() {
-  const { user } = useAuth()
-  const [data, setData] = useState(mockData)
+  const { user, loading, token } = useSession();
+  const [subscription, setSubscription] = useState<any>(null);
+
+
+  // ✅ Fetch subscription using your api/api instance
+  useEffect(() => {
+    if (user) {
+      api
+        .get("/api/subscription", {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        .then((res) => {
+          setSubscription(res.data);
+        })
+        .catch(() => {
+          setSubscription(null);
+        })
+        .finally(() => loading(false));
+    }
+  }, [user]);
+
+  // ✅ Cancel subscription using your api/api instance
+  const cancelSubscription = () => {
+    api
+      .post(
+        "/subscription/cancel",
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      .then(() => {
+        setSubscription({ ...subscription, status: "canceled" });
+      })
+      .catch((err) => {
+        console.error("Cancel failed:", err);
+      });
+  };
 
   if (!user) {
     return (
@@ -41,7 +63,7 @@ export default function Dashboard() {
           <p className="text-gray-400">Loading...</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -49,11 +71,15 @@ export default function Dashboard() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Welcome back, {user.fullname}!</h1>
-          <p className="text-gray-400">Here's what's happening with your fitness journey</p>
+          <h1 className="text-3xl font-bold mb-2">
+            Welcome back, {user.fullname}!
+          </h1>
+          <p className="text-gray-400">
+            Here's what's happening with your fitness journey
+          </p>
         </div>
 
-        {/* Stats Grid */}
+        {/* Stats Grid (unchanged) */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
             <div className="flex items-center">
@@ -106,43 +132,66 @@ export default function Dashboard() {
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Recent Activity */}
+          {/* 🔹 My Subscription (replaces Recent Activity) */}
           <div className="lg:col-span-2">
             <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-              <h2 className="text-xl font-semibold mb-4">Recent Activity</h2>
-              <div className="space-y-4">
-                <div className="flex items-center p-4 bg-gray-700/50 rounded-lg">
-                  <div className="p-2 bg-green-900/30 rounded-lg mr-4">
-                    <Clock className="h-5 w-5 text-green-400" />
-                  </div>
-                  <div>
-                    <p className="font-medium">Completed HIIT Workout</p>
-                    <p className="text-sm text-gray-400">30 minutes • 2 hours ago</p>
-                  </div>
+              <h2 className="text-xl font-bold mb-4">My Subscription</h2>
+
+              {loading ? (
+                <p className="text-gray-400">Loading subscription...</p>
+              ) : subscription && subscription.active ? (
+                <div className="overflow-x-auto rounded-lg shadow-lg border border-gray-700">
+                  <table className="w-full text-sm text-left text-gray-300">
+                    <thead className="bg-gray-800 text-gray-300">
+                      <tr>
+                        <th className="px-4 py-3">Plan</th>
+                        <th className="px-4 py-3">Status</th>
+                        <th className="px-4 py-3">Start Date</th>
+                        <th className="px-4 py-3">Trial End</th>
+                        <th className="px-4 py-3">Current Period End</th>
+                        <th className="px-4 py-3">Cancel At</th>
+                        <th className="px-4 py-3 text-center">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="bg-gray-900 border-t border-gray-700">
+                        <td className="px-4 py-3">{subscription.plan}</td>
+                        <td className="px-4 py-3 capitalize">
+                          {subscription.status}
+                        </td>
+                        <td className="px-4 py-3">{subscription.start_date}</td>
+                        <td className="px-4 py-3">
+                          {subscription.trial_end || "-"}
+                        </td>
+                        <td className="px-4 py-3">
+                          {subscription.current_period_end}
+                        </td>
+                        <td className="px-4 py-3">
+                          {subscription.cancel_at || "-"}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {subscription.status !== "canceled" ? (
+                            <button
+                              onClick={cancelSubscription}
+                              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition"
+                            >
+                              Cancel
+                            </button>
+                          ) : (
+                            <span className="text-gray-400">Cancelled</span>
+                          )}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
-                <div className="flex items-center p-4 bg-gray-700/50 rounded-lg">
-                  <div className="p-2 bg-blue-900/30 rounded-lg mr-4">
-                    <Target className="h-5 w-5 text-blue-400" />
-                  </div>
-                  <div>
-                    <p className="font-medium">Updated Weight Goal</p>
-                    <p className="text-sm text-gray-400">Target: 70kg • 1 day ago</p>
-                  </div>
-                </div>
-                <div className="flex items-center p-4 bg-gray-700/50 rounded-lg">
-                  <div className="p-2 bg-purple-900/30 rounded-lg mr-4">
-                    <BookOpen className="h-5 w-5 text-purple-400" />
-                  </div>
-                  <div>
-                    <p className="font-medium">Started New Program</p>
-                    <p className="text-sm text-gray-400">Strength Training • 3 days ago</p>
-                  </div>
-                </div>
-              </div>
+              ) : (
+                <p className="text-gray-400">No active subscription</p>
+              )}
             </div>
           </div>
 
-          {/* Quick Actions */}
+          {/* 🔹 Right Side (Quick Actions + Events, unchanged) */}
           <div className="space-y-6">
             <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
               <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
@@ -159,11 +208,10 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Upcoming Events */}
             <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
               <h2 className="text-xl font-semibold mb-4">Upcoming Events</h2>
               <div className="space-y-3">
-                {data.events.slice(0, 2).map((event) => (
+                {mockData.events.slice(0, 2).map((event) => (
                   <div key={event.id} className="p-3 bg-gray-700/50 rounded-lg">
                     <p className="font-medium">{event.title}</p>
                     <p className="text-sm text-gray-400">{event.date}</p>
@@ -175,5 +223,5 @@ export default function Dashboard() {
         </div>
       </div>
     </div>
-  )
+  );
 }

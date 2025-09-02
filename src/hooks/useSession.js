@@ -5,6 +5,7 @@ import { getUser, logout } from "../api/api";
 export default function useSession() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [token, setToken] = useState(localStorage.getItem("auth_token"));
 
   useEffect(() => {
     getUser()
@@ -13,5 +14,5 @@ export default function useSession() {
       .finally(() => setLoading(false));
   }, []);
 
-  return { user, loading, logout };
+  return { user, loading, logout, token };
 }

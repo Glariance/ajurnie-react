@@ -6,10 +6,10 @@ import Footer from "./components/Footer";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Home from "./pages/Home";
 import ExerciseLibrary from "./pages/ExerciseLibrary";
-import Dashboard from "./pages/Dashboard";
 import GoalForm from "./pages/GoalForm";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
+import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -65,16 +65,9 @@ function App() {
                 <>
                   <Header />
                   <main className="flex-grow">
+
                     <Routes>
                       <Route path="/" element={<Home />} />
-                      <Route
-                        path="/dashboard"
-                        element={
-                          <ProtectedRoute>
-                            <Dashboard />
-                          </ProtectedRoute>
-                        }
-                      />
                       <Route
                         path="/goal-form"
                         element={
@@ -87,7 +80,14 @@ function App() {
                       {/* <Route path="/goal-form" element={<GoalForm />} /> */}
                       <Route path="/about" element={<About />} />
                       <Route path="/contact" element={<Contact />} />
-
+                      <Route
+                        path="/dashboard"
+                        element={
+                          <ProtectedRoute>
+                            <Dashboard />
+                          </ProtectedRoute>
+                        }
+                      />
                       <Route path="/login" element={<Login />} />
                       <Route path="/register" element={<Register/>} />
                       {/* <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
