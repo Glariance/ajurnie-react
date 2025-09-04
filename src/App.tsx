@@ -20,6 +20,7 @@ import Analytics from "./pages/admin/Analytics";
 import ExerciseForm from "./pages/admin/ExerciseForm";
 import Settings from "./pages/admin/Settings";
 import UserPage from "./pages/User";
+import Profile from  "./pages/Profile";
 // import GuestRoute from "./pages/GuestRoute";
 
 function App() {
@@ -88,6 +89,9 @@ function App() {
                           </ProtectedRoute>
                         }
                       />
+
+                      <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+
                       <Route path="/login" element={<Login />} />
                       <Route path="/register" element={<Register/>} />
                       {/* <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />

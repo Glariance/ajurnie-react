@@ -1,13 +1,8 @@
 import React, { useState, useEffect } from "react";
 import api from "../api/api"; // ✅ use your centralized API instance
-import useSession from "../hooks/useSession"; 
+import useSession from "../hooks/useSession";
 
-import {
-  Calendar,
-  Target,
-  TrendingUp,
-  Award,
-} from "lucide-react";
+import { Calendar, Target, TrendingUp, Award } from "lucide-react";
 
 // Mock data for right-side content
 const mockData = {
@@ -20,7 +15,9 @@ const mockData = {
 export default function Dashboard() {
   const { user, loading, token } = useSession();
   const [subscription, setSubscription] = useState<any>(null);
+  const [showConfirm, setShowConfirm] = useState(false); // ✅ modal state
 
+console.log("Subscription:", subscription);
 
   // ✅ Fetch subscription using your api/api instance
   useEffect(() => {
@@ -43,15 +40,17 @@ export default function Dashboard() {
   const cancelSubscription = () => {
     api
       .post(
-        "/subscription/cancel",
+        "/api/subscription/cancel",
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       )
       .then(() => {
         setSubscription({ ...subscription, status: "canceled" });
+        setShowConfirm(false); // close modal
       })
       .catch((err) => {
         console.error("Cancel failed:", err);
+        setShowConfirm(false);
       });
   };
 
@@ -68,7 +67,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">
@@ -145,24 +144,27 @@ export default function Dashboard() {
                     <thead className="bg-gray-800 text-gray-300">
                       <tr>
                         <th className="px-4 py-3">Plan</th>
+                        <th className="px-4 py-3">Price</th>
                         <th className="px-4 py-3">Status</th>
                         <th className="px-4 py-3">Start Date</th>
-                        <th className="px-4 py-3">Trial End</th>
+                        {/* <th className="px-4 py-3">Trial End</th> */}
                         <th className="px-4 py-3">Current Period End</th>
                         <th className="px-4 py-3">Cancel At</th>
                         <th className="px-4 py-3 text-center">Action</th>
                       </tr>
                     </thead>
                     <tbody>
+
                       <tr className="bg-gray-900 border-t border-gray-700">
                         <td className="px-4 py-3">{subscription.plan}</td>
+                        <td className="px-4 py-3">{subscription.price}</td>
                         <td className="px-4 py-3 capitalize">
                           {subscription.status}
                         </td>
                         <td className="px-4 py-3">{subscription.start_date}</td>
-                        <td className="px-4 py-3">
+                        {/* <td className="px-4 py-3">
                           {subscription.trial_end || "-"}
-                        </td>
+                        </td> */}
                         <td className="px-4 py-3">
                           {subscription.current_period_end}
                         </td>
@@ -172,7 +174,7 @@ export default function Dashboard() {
                         <td className="px-4 py-3 text-center">
                           {subscription.status !== "canceled" ? (
                             <button
-                              onClick={cancelSubscription}
+                              onClick={() => setShowConfirm(true)} // ✅ open modal
                               className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition"
                             >
                               Cancel
@@ -220,8 +222,34 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
+          
         </div>
       </div>
+
+      {/* ✅ Confirmation Modal */}
+      {showConfirm && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-gray-800 rounded-lg shadow-lg p-6 w-full max-w-sm border border-gray-700">
+            <h2 className="text-lg font-semibold mb-4">
+              Are you sure you want to cancel your subscription?
+            </h2>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowConfirm(false)}
+                className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-lg"
+              >
+                No, Keep It
+              </button>
+              <button
+                onClick={cancelSubscription}
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg"
+              >
+                Yes, Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
