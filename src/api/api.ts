@@ -82,6 +82,7 @@ export async function login(credentials: {
   return response.data;
 }
 
+
 export async function logout(): Promise<void> {
   try {
     await api.post("/api/logout");
@@ -90,10 +91,19 @@ export async function logout(): Promise<void> {
   }
 }
 
+
+export async function changePassword(): Promise<any> {
+  const response = await api.post("/api/change-password");
+  return response.data;
+}
+
+
 export async function getUser(): Promise<any> {
   const response = await api.get("/api/user");
   return response.data;
 }
+
+
 
 // Goal API functions
 export async function storeGoal(goalData: any): Promise<any> {
@@ -104,5 +114,8 @@ export async function storeGoal(goalData: any): Promise<any> {
   const response = await api.post("/api/store-goal", goalData);
   return response.data;
 }
+
+
+
 
 export default api;

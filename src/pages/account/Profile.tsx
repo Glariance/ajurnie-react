@@ -1,8 +1,17 @@
 import React, { useEffect, useMemo, useState } from "react";
-import api from "../api/api"; // ✅ centralized API instance
-import useSession from "../hooks/useSession";
+import api from "../../api/api"; // ✅ centralized API instance
+import useSession from "../../hooks/useSession";
 import { Calendar, Target, TrendingUp, Award } from "lucide-react";
-import AccountLayout from "../layouts/AccountLayout";
+import {
+  User,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  CheckCircle,
+  AlertCircle,
+} from "lucide-react";
+
 
 // Mock data for right-side content (kept for parity with your dashboard)
 const mockData = {
@@ -158,7 +167,7 @@ export default function Profile() {
     <input
       {...props}
       className={
-        "w-full rounded-lg bg-gray-900 border border-gray-700 outline-none px-3 py-2 text-gray-100 placeholder-gray-500 " +
+        "w-full rounded-lg bg-gray-700 border border-gray-700 outline-none px-3 py-2 text-gray-100 placeholder-gray-400" +
         "focus:border-red-600 focus:ring-2 focus:ring-red-600/40 hover:border-red-600 " +
         (props.className ? props.className : "")
       }
@@ -169,7 +178,7 @@ export default function Profile() {
     <select
       {...props}
       className={
-        "w-full rounded-lg bg-gray-900 border border-gray-700 outline-none px-3 py-2 text-gray-100 " +
+        "w-full rounded-lg bg-gray-700 border border-gray-700 outline-none px-3 py-2 text-gray-100 placeholder-gray-400" +
         "focus:border-red-600 focus:ring-2 focus:ring-red-600/40 hover:border-red-600 " +
         (props.className ? props.className : "")
       }
@@ -226,7 +235,7 @@ export default function Profile() {
         </div>
 
         {/* Main Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 gap-8">
           {/* 🔹 Profile Form */}
           <div className="lg:col-span-2">
             <Card title="My Profile">
@@ -373,7 +382,7 @@ export default function Profile() {
                     value={profile.bio || ""}
                     onChange={(e) => onChange("bio", e.target.value)}
                     placeholder="Tell us a little about you..."
-                    className="w-full rounded-lg bg-gray-900 border border-gray-700 focus:border-red-600 focus:ring-2 focus:ring-red-600/40 outline-none px-3 py-2 text-gray-100 placeholder-gray-500 hover:border-red-600"
+                    className="w-full rounded-lg bg-gray-700 border border-gray-700 focus:border-red-600 focus:ring-2 focus:ring-red-600/40 outline-none px-3 py-2 text-gray-100 placeholder-gray-400 hover:border-red-600"
                   />
                 </Field>
               </div>
@@ -402,38 +411,7 @@ export default function Profile() {
             </Card>
           </div>
 
-          {/* 🔹 Right Side (Quick Actions + Events) */}
 
-{/* <AccountLayout
-      events={events}
-      onStartWorkout={() => console.log("Start workout")}
-      onViewProgress={() => console.log("View progress")}
-      onUpdateGoals={() => console.log("Update goals")}
-    > */}
-      {/* ⬇️ Your existing Profile form/content goes here (left 2/3 column) */}
-      {/* <Card title="My Profile"> ... </Card> */}
-    {/* </AccountLayout> */}
-
-          <div className="space-y-6">
-            <Card title="Quick Actions">
-              <div className="space-y-3">
-                <button className="w-full bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors">Start Workout</button>
-                <button className="w-full bg-gray-700 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors">View Progress</button>
-                <button className="w-full bg-gray-700 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors">Update Goals</button>
-              </div>
-            </Card>
-
-            <Card title="Upcoming Events">
-              <div className="space-y-3">
-                {mockData.events.slice(0, 2).map((event) => (
-                  <div key={event.id} className="p-3 bg-gray-700/50 rounded-lg">
-                    <p className="font-medium">{event.title}</p>
-                    <p className="text-sm text-gray-400">{event.date}</p>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          </div>
           
         </div>
       </div>

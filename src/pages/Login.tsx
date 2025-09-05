@@ -38,7 +38,7 @@ export default function Login() {
         setTimeout(() => {
           const token = localStorage.getItem("auth_token");
           if (token) {
-            navigate("/dashboard");
+            navigate("/account/dashboard");
             window.location.reload();
           } else {
             console.warn("Token not found in localStorage yet.");
