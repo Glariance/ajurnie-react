@@ -83,12 +83,12 @@ export default function Login() {
               </div>
 
               {/* Error Message */}
-              {error && (
+              {/* {error && (
                 <div className="mb-6 p-4 bg-red-900/30 border border-red-700 rounded-lg flex items-center">
                   <AlertCircle className="h-5 w-5 text-red-400 mr-3" />
                   <span className="text-red-300">{error}</span>
                 </div>
-              )}
+              )} */}
 
               {/* Form */}
               <form onSubmit={handleSubmit} className="space-y-6">
