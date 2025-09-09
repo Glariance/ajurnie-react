@@ -1,21 +1,22 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig } from "axios";
-import { notify } from "../lib/alerts"; // ← from your sweetalert2 helper
+import { notify } from "../lib/alerts";
 
-// Axios instance
+
+export const API_BASE_URL =
+  import.meta.env.MODE === "development"
+    ? import.meta.env.VITE_API_URL_LOCAL
+    : import.meta.env.VITE_API_URL;
+
 const api: AxiosInstance = axios.create({
-  baseURL:
-    import.meta.env.MODE === "development"
-      ? import.meta.env.VITE_API_URL_LOCAL
-      : import.meta.env.VITE_API_URL,
+  baseURL: API_BASE_URL,
   timeout: 30000,
-  withCredentials: true, // needed for Sanctum cookies
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
     "X-Requested-With": "XMLHttpRequest",
   },
 });
-
 // ------- Interceptors -------
 
 // Add Bearer token
@@ -51,6 +52,7 @@ api.interceptors.response.use(
     if (msg) notify.success(msg);
     return response;
   },
+
   (error) => {
     const status = error?.response?.status;
     const url: string = error?.config?.url || "";
@@ -164,17 +166,24 @@ export async function changePassword(
 
 /**
  * Update User (partial update)
+ * - Uses POST /api/update-user (your route).
  * - Sends JSON by default.
  * - If any value is a File/Blob, automatically switches to multipart/form-data.
- * Endpoint assumes PATCH /api/user
+ * - Email is READ-ONLY and will not be sent even if passed accidentally.
  */
 export type UpdateUserPayload = {
   fullname?: string;
-  email?: string;
+  // email?: string; // intentionally NOT supported for updates
   phone?: string;
   bio?: string;
   gender?: string;
   dob?: string; // 'YYYY-MM-DD'
+  address1?: string;
+  address2?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  country?: string;
   avatar?: File | string | null;
   [key: string]: any;
 };
@@ -184,6 +193,11 @@ export async function updateUser(
   config: AxiosRequestConfig = {}
 ): Promise<any> {
   await getCsrfCookie();
+
+  // Hard guard: never allow email to be sent
+  if (Object.prototype.hasOwnProperty.call(updates, "email")) {
+    delete (updates as any).email;
+  }
 
   const hasFile =
     updates &&
@@ -203,7 +217,8 @@ export async function updateUser(
     headers = { "Content-Type": "multipart/form-data" };
   }
 
-  const response = await api.patch("/api/user", data, {
+  // ✅ Use POST (your backend supports POST for this route)
+  const response = await api.post("/api/update-user", data, {
     ...config,
     headers: { ...(headers || {}), ...(config.headers || {}) },
     meta: {

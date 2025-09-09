@@ -133,7 +133,7 @@ export default function Dashboard() {
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">Start Date</th>
                   <th className="px-4 py-3">Current Period End</th>
-                  <th className="px-4 py-3">Cancel At</th>
+                  {/* <th className="px-4 py-3">Cancel At</th> */}
                   <th className="px-4 py-3 text-center">Action</th>
                 </tr>
               </thead>
@@ -148,9 +148,9 @@ export default function Dashboard() {
                   <td className="px-4 py-3">
                     {subscription.current_period_end}
                   </td>
-                  <td className="px-4 py-3">
+                  {/* <td className="px-4 py-3">
                     {subscription.cancel_at || "-"}
-                  </td>
+                  </td> */}
                   <td className="px-4 py-3 text-center">
                     {subscription.status !== "canceled" ? (
                       <button

@@ -1,88 +1,165 @@
-import React, { useEffect, useMemo, useState } from "react";
-import api from "../../api/api"; // ✅ centralized API instance
-import useSession from "../../hooks/useSession";
+// src/routes/AccountProfile.tsx
+import React, { useEffect, useRef, useState } from "react";
 import { Calendar, Target, TrendingUp, Award } from "lucide-react";
-import {
-  User,
-  Mail,
-  Lock,
-  Eye,
-  EyeOff,
-  CheckCircle,
-  AlertCircle,
-} from "lucide-react";
+import { getUser, updateUser, API_BASE_URL } from "../../api/api";
+import useSession from "../../hooks/useSession";
+import { notify } from "../../lib/alerts"; // ⬅️ use the same notify used in api instance
 
+// ---------- Subcomponents (OUTSIDE so identity is stable) ----------
+type FieldProps = { label: string; error?: string; children: React.ReactNode };
+const Field = React.memo(function Field({ label, error, children }: FieldProps) {
+  return (
+    <label className="grid gap-1.5">
+      <span className="text-gray-300 text-sm">{label}</span>
+      {children}
+      {error && <span className="text-red-400 text-xs">{error}</span>}
+    </label>
+  );
+});
 
-// Mock data for right-side content (kept for parity with your dashboard)
-const mockData = {
-  events: [
-    { id: 1, title: "Fitness Workshop", date: "2024-12-15", attendees: 25 },
-    { id: 2, title: "Nutrition Seminar", date: "2024-12-20", attendees: 18 },
-  ],
+type CardProps = { title?: string; children: React.ReactNode };
+const Card = React.memo(function Card({ title, children }: CardProps) {
+  return (
+    <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+      {title && <h2 className="text-xl font-bold mb-4">{title}</h2>}
+      {children}
+    </div>
+  );
+});
+
+type TextInputProps = React.InputHTMLAttributes<HTMLInputElement>;
+const TextInput = React.memo(function TextInput(props: TextInputProps) {
+  const { className, ...rest } = props;
+  return (
+    <input
+      {...rest}
+      className={
+        "w-full rounded-lg bg-gray-700 border border-gray-700 outline-none px-3 py-2 text-gray-100 placeholder-gray-400 " +
+        "focus:border-red-600 focus:ring-2 focus:ring-red-600/40 hover:border-red-600 " +
+        (className ? " " + className : "")
+      }
+    />
+  );
+});
+
+type SelectInputProps = React.SelectHTMLAttributes<HTMLSelectElement>;
+const SelectInput = React.memo(function SelectInput(props: SelectInputProps) {
+  const { className, ...rest } = props;
+  return (
+    <select
+      {...rest}
+      className={
+        "w-full rounded-lg bg-gray-700 border border-gray-700 outline-none px-3 py-2 text-gray-100 placeholder-gray-400 " +
+        "focus:border-red-600 focus:ring-2 focus:ring-red-600/40 hover:border-red-600 " +
+        (className ? " " + className : "")
+      }
+    />
+  );
+});
+
+// build a full URL from what backend sends
+const normalizeAvatarUrl = (raw?: string): string => {
+  if (!raw) return "";
+  if (/^https?:\/\//i.test(raw)) return raw; // already absolute
+  if (raw.startsWith("/storage/"))          // e.g. /storage/avatars/...
+    return API_BASE_URL.replace(/\/+$/, "") + raw;
+  // e.g. avatars/filename.png
+  return API_BASE_URL.replace(/\/+$/, "") + "/storage/" + raw.replace(/^\/+/, "");
 };
 
-// ---------- Types (works fine in Vite even if JS; remove if using plain .jsx) ----------
-export type UserProfile = {
-  id?: string;
+// ---------- Types ----------
+type UserForm = {
+  id?: number | string;
   fullname?: string;
-  username?: string;
-  email?: string;
+  email?: string; // read-only
   phone?: string;
   dob?: string;
   gender?: string;
-  bio?: string;
   address1?: string;
   address2?: string;
   city?: string;
   state?: string;
-  postalCode?: string;
+  zip?: string;
   country?: string;
-  timezone?: string;
-  units?: "metric" | "imperial" | string;
-  newsletter?: boolean;
-  workoutReminders?: boolean;
-  marketingEmails?: boolean;
-  emergencyName?: string;
-  emergencyPhone?: string;
-  avatarUrl?: string;
+  bio?: string;
+  avatarUrl?: string; // normalized absolute URL for <img>
 };
 
-export default function Profile() {
-  const { user, loading, token } = useSession();
+const fromApi = (d: any = {}): UserForm => ({
+  id: d.id,
+  fullname: d.fullname ?? "",
+  email: d.email ?? "",
+  phone: d.phone ?? "",
+  dob: d.dob ?? "",
+  gender: d.gender ?? "",
+  address1: d.address1 ?? "",
+  address2: d.address2 ?? "",
+  city: d.city ?? "",
+  state: d.state ?? "",
+  zip: d.zip ?? "",
+  country: d.country ?? "",
+  bio: d.bio ?? "",
+  // accept either avatarUrl (preferred) or raw avatar path and normalize
+  avatarUrl: normalizeAvatarUrl(d.avatarUrl ?? d.avatar),
+});
 
-  // Form state
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+// ---------- Page ----------
+export default function AccountProfile() {
+  const { user } = useSession();
+
+  const [form, setForm] = useState<UserForm | null>(null);
   const [saving, setSaving] = useState(false);
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [avatarPreview, setAvatarPreview] = useState<string>("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<string>("");
 
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string>("");
 
-  // ---------- Fetch profile on mount ----------
+  const didInit = useRef(false);
+  const hasEdited = useRef(false);
+  const baselineRef = useRef<UserForm | null>(null);
+
   useEffect(() => {
-    if (!user) return;
-    api
-      .get("/api/profile", { headers: { Authorization: `Bearer ${token}` } })
-      .then((res) => {
-        const data: UserProfile = res.data || {};
-        setProfile(data);
-        setAvatarPreview(data?.avatarUrl || "");
+    if (!user || didInit.current) return;
+    didInit.current = true;
+
+    const seeded = fromApi(user);
+    setForm(seeded);
+    setAvatarPreview(seeded.avatarUrl || "");
+    baselineRef.current = seeded;
+
+    getUser({ meta: { suppressErrorAlert: true } })
+      .then((data) => {
+        const fresh = fromApi(data || {});
+        if (hasEdited.current) {
+          setForm((prev) => {
+            if (!prev) return fresh;
+            return {
+              ...prev,
+              avatarUrl: avatarFile ? prev.avatarUrl : fresh.avatarUrl ?? prev.avatarUrl,
+            };
+          });
+        } else {
+          setForm(fresh);
+          setAvatarPreview(fresh.avatarUrl || "");
+          baselineRef.current = fresh;
+        }
       })
-      .catch(() => setProfile({ fullname: user.fullname, email: user.email }))
-      .finally(() => loading(false));
-  }, [user]);
+      .catch(() => {});
+  }, [user, avatarFile]);
 
-  const dirty = useMemo(() => JSON.stringify(profile), [profile]); // cheap trigger for Save enabled
-
-  // ---------- Helpers ----------
-  const onChange = (key: keyof UserProfile, value: any) => {
-    setProfile((p) => ({ ...(p || {}), [key]: value }));
+  const onChange = (key: keyof UserForm, value: any) => {
+    hasEdited.current = true;
+    setForm((p) => ({ ...(p || {}), [key]: value }));
   };
 
   const handleAvatar = (file: File | null) => {
     if (!file) return;
-    if (!file.type.startsWith("image/")) return alert("Please select an image file");
+    if (!file.type.startsWith("image/")) {
+      notify.error("Please select an image file"); // use same notifier
+      return;
+    }
+    hasEdited.current = true;
     setAvatarFile(file);
     const url = URL.createObjectURL(file);
     setAvatarPreview((prev) => {
@@ -91,52 +168,66 @@ export default function Profile() {
     });
   };
 
+  // ⬇️ Use notify.error when validation fails
   const validate = (): boolean => {
     const e: Record<string, string> = {};
-    if (!profile?.fullname?.trim()) e.fullname = "Full name is required";
-    if (profile?.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profile.email)) e.email = "Enter a valid email";
-    if (profile?.phone && !/^\+?[0-9\-()\s]{7,}$/.test(profile.phone)) e.phone = "Enter a valid phone";
-    if (profile?.postalCode && profile.postalCode.length < 3) e.postalCode = "Invalid postal code";
+    if (!form?.fullname?.trim()) e.fullname = "Full name is required";
+    if (form?.phone && !/^\+?[0-9\-()\s]{7,}$/.test(form.phone))
+      e.phone = "Enter a valid phone";
+    if (form?.zip && form.zip.length < 3) e.zip = "Invalid zip";
     setErrors(e);
-    return Object.keys(e).length === 0;
+
+    const keys = Object.keys(e);
+    if (keys.length > 0) {
+      // show the first error via Sweet notify
+      notify.error(e[keys[0]]);
+      return false;
+    }
+    return true;
   };
 
-  // ---------- Save profile ----------
-  const saveProfile = async () => {
-    if (!validate()) return;
+  const buildPayload = (next: UserForm, prev: UserForm | null) => {
+    const out: Record<string, any> = {};
+    ([
+      "fullname","phone","dob","gender",
+      "address1","address2","city","state","zip","country","bio",
+    ] as const).forEach((k) => {
+      const nv = next[k];
+      const pv = prev?.[k];
+      if (nv !== pv && nv !== undefined) out[k] = nv;
+    });
+    return out;
+  };
+
+  const saveUser = async () => {
+    if (!form || !validate()) return; // notify.error already shown
     setSaving(true);
     setMessage("");
 
     try {
-      // 1) If avatar selected, upload (adjust endpoint as needed)
-      let avatarUrl = profile?.avatarUrl || "";
-      if (avatarFile) {
-        const formData = new FormData();
-        formData.append("avatar", avatarFile);
-        const up = await api.post("/api/profile/avatar", formData, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        avatarUrl = up?.data?.url || avatarUrl;
-      }
+      const payload = buildPayload(form, baselineRef.current);
+      if (avatarFile) payload.avatar = avatarFile;
 
-      // 2) Save profile fields
-      const payload = { ...(profile || {}), avatarUrl };
-      await api.put("/api/profile", payload, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await updateUser(payload); // success toast comes from axios meta
+
+      const fresh = fromApi(await getUser({ meta: { suppressErrorAlert: true } }));
+      setForm(fresh);
+      setAvatarPreview(fresh.avatarUrl || "");
+      baselineRef.current = fresh;
+      hasEdited.current = false;
 
       setMessage("Profile updated successfully");
       setAvatarFile(null);
-      setProfile((p) => ({ ...(p || {}), avatarUrl }));
-    } catch (err) {
-      console.error(err);
+    } catch (e) {
+      // Axios interceptor already shows a sweet notify.error with server message
       setMessage("Could not save profile. Please try again.");
+      console.error(e);
     } finally {
       setSaving(false);
     }
   };
 
-  if (!user || !profile) {
+  if (!user || !form) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="text-center">
@@ -147,44 +238,6 @@ export default function Profile() {
     );
   }
 
-  // ---------- Reusable UI bits ----------
-  const Card: React.FC<{ title?: string; children: React.ReactNode }> = ({ title, children }) => (
-    <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-      {title && <h2 className="text-xl font-bold mb-4">{title}</h2>}
-      {children}
-    </div>
-  );
-
-  const Field: React.FC<{ label: string; error?: string; children: React.ReactNode }> = ({ label, error, children }) => (
-    <label className="grid gap-1.5">
-      <span className="text-gray-300 text-sm">{label}</span>
-      {children}
-      {error && <span className="text-red-400 text-xs">{error}</span>}
-    </label>
-  );
-
-  const Input = (props: React.InputHTMLAttributes<HTMLInputElement>) => (
-    <input
-      {...props}
-      className={
-        "w-full rounded-lg bg-gray-700 border border-gray-700 outline-none px-3 py-2 text-gray-100 placeholder-gray-400" +
-        "focus:border-red-600 focus:ring-2 focus:ring-red-600/40 hover:border-red-600 " +
-        (props.className ? props.className : "")
-      }
-    />
-  );
-
-  const Select = (props: React.SelectHTMLAttributes<HTMLSelectElement>) => (
-    <select
-      {...props}
-      className={
-        "w-full rounded-lg bg-gray-700 border border-gray-700 outline-none px-3 py-2 text-gray-100 placeholder-gray-400" +
-        "focus:border-red-600 focus:ring-2 focus:ring-red-600/40 hover:border-red-600 " +
-        (props.className ? props.className : "")
-      }
-    />
-  );
-
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -194,7 +247,7 @@ export default function Profile() {
           <p className="text-gray-400">Update your personal information and preferences</p>
         </div>
 
-        {/* Stats Grid (kept for visual consistency) */}
+        {/* Decorative stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
             <div className="flex items-center">
@@ -234,60 +287,52 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* Main Grid */}
+        {/* Main form */}
         <div className="grid grid-cols-1 gap-8">
-          {/* 🔹 Profile Form */}
           <div className="lg:col-span-2">
             <Card title="My Profile">
               <div className="flex items-start gap-6">
                 <div className="shrink-0">
                   <img
-                    src={avatarPreview || profile.avatarUrl || "https://placehold.co/96x96"}
+                    src={avatarPreview || form.avatarUrl || "https://placehold.co/96x96"}
                     alt="avatar"
                     className="h-24 w-24 rounded-xl object-cover border border-gray-700"
                   />
                 </div>
+
                 <div className="grid sm:grid-cols-2 gap-4 w-full">
                   <Field label="Full Name" error={errors.fullname}>
-                    <Input
-                      value={profile.fullname || ""}
-                      onChange={(e) => onChange("fullname", e.target.value)}
-                      placeholder="John Doe"
-                    />
+                    <TextInput value={form.fullname || ""} onChange={(e) => onChange("fullname", e.target.value)} />
                   </Field>
-                  <Field label="Username">
-                    <Input
-                      value={profile.username || ""}
-                      onChange={(e) => onChange("username", e.target.value)}
-                      placeholder="johndoe"
-                    />
+
+                  {/* Email is read-only and never sent to backend */}
+                  <Field label="Email">
+                    <TextInput type="email" value={form.email || ""} disabled readOnly />
+                    <span className="text-xs text-gray-500">Email is read-only.</span>
                   </Field>
-                  <Field label="Email" error={errors.email}>
-                    <Input
-                      type="email"
-                      value={profile.email || ""}
-                      onChange={(e) => onChange("email", e.target.value)}
-                      placeholder="john@company.com"
-                    />
-                  </Field>
+
                   <Field label="Phone" error={errors.phone}>
-                    <Input
-                      value={profile.phone || ""}
+                    <TextInput
+                      value={form.phone || ""}
+                      inputMode="tel"
+                      pattern="[\d()+\-\s]*"
                       onChange={(e) => onChange("phone", e.target.value)}
                       placeholder="+1 555 000 1111"
                     />
                   </Field>
+
                   <Field label="Date of Birth">
-                    <Input type="date" value={profile.dob || ""} onChange={(e) => onChange("dob", e.target.value)} />
+                    <TextInput type="date" value={form.dob || ""} onChange={(e) => onChange("dob", e.target.value)} />
                   </Field>
+
                   <Field label="Gender">
-                    <Select value={profile.gender || ""} onChange={(e) => onChange("gender", e.target.value)}>
+                    <SelectInput value={form.gender || ""} onChange={(e) => onChange("gender", e.target.value)}>
                       <option value="">Select...</option>
                       <option value="male">Male</option>
                       <option value="female">Female</option>
                       <option value="other">Other</option>
                       <option value="prefer_not">Prefer not to say</option>
-                    </Select>
+                    </SelectInput>
                   </Field>
 
                   <div className="grid gap-2">
@@ -298,88 +343,37 @@ export default function Profile() {
                       onChange={(e) => handleAvatar(e.target.files?.[0] || null)}
                       className="text-sm text-gray-300 file:mr-4 file:rounded-lg file:border-0 file:bg-gray-700 file:px-3 file:py-2 file:text-gray-100 hover:file:bg-gray-600"
                     />
-                    <span className="text-xs text-gray-500">PNG, JPG up to ~2MB</span>
+                    <span className="text-xs text-gray-500">PNG, JPG, WEBP up to ~2MB</span>
                   </div>
                 </div>
               </div>
 
               <div className="grid sm:grid-cols-2 gap-4 mt-6">
                 <Field label="Address Line 1">
-                  <Input value={profile.address1 || ""} onChange={(e) => onChange("address1", e.target.value)} />
+                  <TextInput value={form.address1 || ""} onChange={(e) => onChange("address1", e.target.value)} />
                 </Field>
                 <Field label="Address Line 2">
-                  <Input value={profile.address2 || ""} onChange={(e) => onChange("address2", e.target.value)} />
+                  <TextInput value={form.address2 || ""} onChange={(e) => onChange("address2", e.target.value)} />
                 </Field>
                 <Field label="City">
-                  <Input value={profile.city || ""} onChange={(e) => onChange("city", e.target.value)} />
+                  <TextInput value={form.city || ""} onChange={(e) => onChange("city", e.target.value)} />
                 </Field>
                 <Field label="State / Province">
-                  <Input value={profile.state || ""} onChange={(e) => onChange("state", e.target.value)} />
+                  <TextInput value={form.state || ""} onChange={(e) => onChange("state", e.target.value)} />
                 </Field>
-                <Field label="Postal Code" error={errors.postalCode}>
-                  <Input value={profile.postalCode || ""} onChange={(e) => onChange("postalCode", e.target.value)} />
+                <Field label="ZIP" error={errors.zip}>
+                  <TextInput value={form.zip || ""} onChange={(e) => onChange("zip", e.target.value)} />
                 </Field>
                 <Field label="Country">
-                  <Input value={profile.country || ""} onChange={(e) => onChange("country", e.target.value)} />
+                  <TextInput value={form.country || ""} onChange={(e) => onChange("country", e.target.value)} />
                 </Field>
-              </div>
-
-              <div className="grid sm:grid-cols-3 gap-4 mt-6">
-                <Field label="Units">
-                  <Select value={profile.units || "metric"} onChange={(e) => onChange("units", e.target.value)}>
-                    <option value="metric">Metric (kg, cm)</option>
-                    <option value="imperial">Imperial (lb, in)</option>
-                  </Select>
-                </Field>
-                <Field label="Timezone">
-                  <Input value={profile.timezone || ""} onChange={(e) => onChange("timezone", e.target.value)} placeholder="e.g. Europe/London" />
-                </Field>
-                <div className="grid gap-1.5">
-                  <span className="text-gray-300 text-sm">Newsletter</span>
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => onChange("newsletter", !profile.newsletter)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${profile.newsletter ? "bg-red-600" : "bg-gray-600"}`}
-                    >
-                      <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${profile.newsletter ? "translate-x-5" : "translate-x-1"}`} />
-                    </button>
-                    <span className="text-gray-400 text-sm">Get product news & tips</span>
-                  </div>
-                </div>
-                <div className="grid gap-1.5">
-                  <span className="text-gray-300 text-sm">Workout Reminders</span>
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => onChange("workoutReminders", !profile.workoutReminders)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${profile.workoutReminders ? "bg-red-600" : "bg-gray-600"}`}
-                    >
-                      <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${profile.workoutReminders ? "translate-x-5" : "translate-x-1"}`} />
-                    </button>
-                    <span className="text-gray-400 text-sm">Push/email reminders</span>
-                  </div>
-                </div>
-                <div className="grid gap-1.5">
-                  <span className="text-gray-300 text-sm">Marketing Emails</span>
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => onChange("marketingEmails", !profile.marketingEmails)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${profile.marketingEmails ? "bg-red-600" : "bg-gray-600"}`}
-                    >
-                      <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${profile.marketingEmails ? "translate-x-5" : "translate-x-1"}`} />
-                    </button>
-                    <span className="text-gray-400 text-sm">Occasional promos</span>
-                  </div>
-                </div>
               </div>
 
               <div className="grid gap-4 mt-6">
                 <Field label="Short Bio">
                   <textarea
                     rows={3}
-                    value={profile.bio || ""}
+                    value={form.bio || ""}
                     onChange={(e) => onChange("bio", e.target.value)}
                     placeholder="Tell us a little about you..."
                     className="w-full rounded-lg bg-gray-700 border border-gray-700 focus:border-red-600 focus:ring-2 focus:ring-red-600/40 outline-none px-3 py-2 text-gray-100 placeholder-gray-400 hover:border-red-600"
@@ -387,21 +381,13 @@ export default function Profile() {
                 </Field>
               </div>
 
-              {/* Save Row */}
               <div className="flex items-center justify-between mt-6">
                 <div className="text-sm text-gray-400">{message}</div>
                 <div className="flex gap-3">
                   <button
                     type="button"
-                    onClick={() => window.location.reload()}
-                    className="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-white border border-gray-600"
-                  >
-                    Reset
-                  </button>
-                  <button
-                    type="button"
                     disabled={saving}
-                    onClick={saveProfile}
+                    onClick={saveUser}
                     className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white"
                   >
                     {saving ? "Saving..." : "Save Changes"}
@@ -410,9 +396,6 @@ export default function Profile() {
               </div>
             </Card>
           </div>
-
-
-          
         </div>
       </div>
     </div>
