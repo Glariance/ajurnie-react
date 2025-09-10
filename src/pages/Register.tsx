@@ -52,14 +52,14 @@ export default function Register() {
         {
           value: "trainer",
           title: "Certified Trainer",
-          description: "$34.99/year (Founding Offer)",
+          description: "$24.99/year (Founding Offer)",
           features: [
             "Includes all Novice features",
             "Client management tools",
             "Program creation & delivery",
             "Platform to grow your coaching business",
           ],
-          priceLabel: "Special Founding Price $34.99/year",
+          priceLabel: "Special Founding Price $24.99/year",
           priceKey: "founding_trainer_yearly",
           interval: "yearly",
           icon: <User className="h-6 w-6 text-red-500" />,
