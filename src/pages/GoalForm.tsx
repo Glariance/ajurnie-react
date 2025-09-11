@@ -718,7 +718,7 @@ export default function GoalForm() {
           )}
 
           {/* Errors Display */}
-          {Object.keys(errors).length > 0 && (
+          {/* {Object.keys(errors).length > 0 && (
             <div className="bg-red-900/40 border border-red-700 text-red-300 p-4 rounded-lg mb-4">
               <h4 className="font-semibold mb-2">
                 Please fix the following errors:
@@ -729,7 +729,7 @@ export default function GoalForm() {
                 ))}
               </ul>
             </div>
-          )}
+          )} */}
 
           {/* Navigation Buttons */}
           <div className="flex justify-between mt-8 pt-6 border-t border-gray-700">
