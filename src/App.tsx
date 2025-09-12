@@ -6,10 +6,12 @@ import Footer from "./components/Footer";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Home from "./pages/Home";
 import ExerciseLibrary from "./pages/ExerciseLibrary";
+import ExerciseDetail from "./pages/ExerciseDetail";
 import GoalForm from "./pages/GoalForm";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword";
 import Register from "./pages/Register";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import ExerciseManagement from "./pages/admin/ExerciseManagement";
@@ -23,6 +25,7 @@ import AccountLayout from "./layouts/AccountLayout";
 import Dashboard from "./pages/account/Dashboard";
 import Profile from "./pages/account/Profile";
 import ChangePassword from "./pages/account/ChangePassword";
+import ResetPassword from "./pages/ResetPassword";
 // import GuestRoute from "./pages/GuestRoute";
 
 function App() {
@@ -70,9 +73,12 @@ function App() {
                     <Route path="/about" element={<About />} />
                     <Route path="/contact" element={<Contact />} />
                     <Route path="/exercises" element={<ExerciseLibrary />} />
+                    <Route path="/exercises/:id" element={<ExerciseDetail />} />
 
                     {/* Auth pages */}
                     <Route path="/login" element={<Login />} />
+                    <Route path="/forgot-password" element={<ForgotPassword />} />
+                    <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/register" element={<Register />} />
 
                     {/* Goal Form (protected) */}

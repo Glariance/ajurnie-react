@@ -153,17 +153,24 @@ export default function Login() {
               </form>
 
               {/* Sign up link */}
-              <div className="mt-6 text-center">
-                <p className="text-gray-400">
-                  Don't have an account?{" "}
-                  <Link
-                    to="/register"
-                    className="text-red-400 hover:text-red-300 font-medium"
-                  >
-                    Sign up
-                  </Link>
-                </p>
-              </div>
+                <div className="mt-4 text-center text-sm">
+                  <p className="text-gray-400">
+                    <Link
+                      to="/forgot-password"
+                      className="text-red-400 hover:text-red-300 font-medium"
+                    >
+                      Forgot your password?
+                    </Link>
+                    {" | "}
+                    Don't have an account?{" "}
+                    <Link
+                      to="/register"
+                      className="text-red-400 hover:text-red-300 font-medium"
+                    >
+                      Sign up
+                    </Link>
+                  </p>
+                </div>
             </div>
           )}
         </div>

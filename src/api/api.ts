@@ -240,4 +240,45 @@ export async function storeGoal(
   return response.data;
 }
 
+
+// ------- Auth: Forgot/Reset Password -------
+
+export type ForgotPasswordPayload = { email: string };
+export async function forgotPassword(
+  payload: ForgotPasswordPayload,
+  config: AxiosRequestConfig = {}
+): Promise<any> {
+  await getCsrfCookie();
+  const res = await api.post("/api/forgot-password", payload, {
+    ...config,
+    meta: {
+      successMessage: "Password reset link sent. Check your email.",
+      ...(config.meta || {}),
+    },
+  });
+  return res.data;
+}
+
+export type ResetPasswordPayload = {
+  email: string;
+  token: string;
+  password: string;
+  password_confirmation: string;
+};
+export async function resetPassword(
+  payload: ResetPasswordPayload,
+  config: AxiosRequestConfig = {}
+): Promise<any> {
+  await getCsrfCookie();
+  const res = await api.post("/api/reset-password", payload, {
+    ...config,
+    meta: {
+      successMessage: "Password updated successfully.",
+      ...(config.meta || {}),
+    },
+  });
+  return res.data;
+}
+
+
 export default api;
