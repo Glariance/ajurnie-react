@@ -31,22 +31,24 @@ export default function Login() {
       if (data?.message === "Invalid credentials" || !data?.token) {
         setError("Invalid email or password.");
       } else {
-        console.log("Login successful:", data);
         setSuccess(true);
+        setLoading(true);
 
-        
-        setTimeout(() => {
+        // Wait until auth_token is set in localStorage, then redirect
+        const checkTokenAndRedirect = () => {
           const token = localStorage.getItem("auth_token");
           if (token) {
-            navigate("/account/dashboard");
-            window.location.reload();
+        navigate("/account/dashboard");
+        window.location.reload();
           } else {
-            console.warn("Token not found in localStorage yet.");
-            setError("Login failed to store session. Please try again.");
+        // Retry after a short delay
+        setTimeout(checkTokenAndRedirect, 300);
           }
-        }, 3000);
+        };
+
+        checkTokenAndRedirect();
       }
-    } catch (err: any) {
+        } catch (err: any) {
       console.error(err);
       setError(
         err?.response?.data?.message ||

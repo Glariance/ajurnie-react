@@ -1,33 +1,55 @@
- import React, { useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import React, { useMemo, useState } from "react";
+import { Link, useNavigate, useSearchParams, useLocation, useParams } from "react-router-dom";
 import { Lock, Mail, ArrowLeft, Loader2 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function ResetPassword() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { token: tokenParam } = useParams();
   const { completePasswordReset } = useAuth();
   const [params] = useSearchParams();
 
+  // Prefer query params; fall back to /reset-password/:token
+  const tokenFromQuery = params.get("token") || "";
+  const emailFromQuery = params.get("email") || "";
+  const tokenFromParam = tokenParam ?? "";
+
+  const initialToken = tokenFromQuery || tokenFromParam;
+  const [email, setEmail] = useState(emailFromQuery);
+  const [token, setToken] = useState(initialToken);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const token = params.get("token") || "";
-  const email = params.get("email") || "";
+  const canSubmit = useMemo(() => {
+    return (
+      email.trim().length > 0 &&
+      token.trim().length > 0 &&
+      password.length >= 8 &&
+      password === confirm
+    );
+  }, [email, token, password, confirm]);
 
-  const disabled =
-    loading || !token || !email || password.length < 8 || password !== confirm;
+  const disabled = loading || !canSubmit;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (disabled) return;
+    if (!canSubmit) return;
     setLoading(true);
+
     try {
-      await completePasswordReset({ email, token, password, password_confirmation: confirm });
-      // Interceptor shows success toast. Redirect to login.
-      navigate("/login");
-    } catch {
-      // Errors are toast-notified by interceptors in API layer
+      const { error } = await completePasswordReset({
+        email,
+        token,
+        password,
+        password_confirmation: confirm,
+      });
+
+      if (!error) {
+        // success toast is shown by interceptor (api.resetPassword)
+        navigate("/login");
+      }
     } finally {
       setLoading(false);
     }
@@ -54,6 +76,7 @@ export default function ResetPassword() {
           </div>
 
           <form onSubmit={handleSubmit} className="p-6 space-y-5">
+            {/* Email */}
             <div>
               <label className="mb-2 block text-sm text-slate-200">Email</label>
               <div className="relative">
@@ -61,12 +84,33 @@ export default function ResetPassword() {
                 <input
                   type="email"
                   value={email}
-                  readOnly
-                  className="w-full cursor-not-allowed rounded-xl bg-slate-900 px-10 py-3 text-slate-400 outline-none ring-1 ring-white/10"
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  readOnly={!!emailFromQuery}
+                  className={`w-full rounded-xl bg-slate-900 px-10 py-3 outline-none ring-1 ring-white/10 ${
+                    emailFromQuery
+                      ? "cursor-not-allowed text-slate-400"
+                      : "text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-rose-400"
+                  }`}
                 />
               </div>
             </div>
 
+            {/* Token field (only if not in URL) */}
+            {!tokenFromQuery && !tokenFromParam && (
+              <div>
+                <label className="mb-2 block text-sm text-slate-200">Reset token</label>
+                <input
+                  type="text"
+                  value={token}
+                  onChange={(e) => setToken(e.target.value)}
+                  placeholder="Paste token from email"
+                  className="w-full rounded-xl bg-slate-900 px-4 py-3 text-slate-100 placeholder-slate-400 outline-none ring-1 ring-white/10 transition focus:ring-2 focus:ring-rose-400"
+                />
+              </div>
+            )}
+
+            {/* New password */}
             <div>
               <label className="mb-2 block text-sm text-slate-200">New password</label>
               <div className="relative">
@@ -82,6 +126,7 @@ export default function ResetPassword() {
               </div>
             </div>
 
+            {/* Confirm password */}
             <div>
               <label className="mb-2 block text-sm text-slate-200">Confirm password</label>
               <div className="relative">

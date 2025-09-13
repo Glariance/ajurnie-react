@@ -222,7 +222,7 @@ export async function updateUser(
     ...config,
     headers: { ...(headers || {}), ...(config.headers || {}) },
     meta: {
-      successMessage: "Profile updated ✅",
+      successMessage: "Profile updated successfully",
       ...(config.meta || {}),
     },
   });
@@ -244,6 +244,7 @@ export async function storeGoal(
 // ------- Auth: Forgot/Reset Password -------
 
 export type ForgotPasswordPayload = { email: string };
+
 export async function forgotPassword(
   payload: ForgotPasswordPayload,
   config: AxiosRequestConfig = {}
@@ -252,6 +253,7 @@ export async function forgotPassword(
   const res = await api.post("/api/forgot-password", payload, {
     ...config,
     meta: {
+      // success toast via interceptor
       successMessage: "Password reset link sent. Check your email.",
       ...(config.meta || {}),
     },
@@ -265,6 +267,7 @@ export type ResetPasswordPayload = {
   password: string;
   password_confirmation: string;
 };
+
 export async function resetPassword(
   payload: ResetPasswordPayload,
   config: AxiosRequestConfig = {}
@@ -273,6 +276,7 @@ export async function resetPassword(
   const res = await api.post("/api/reset-password", payload, {
     ...config,
     meta: {
+      // success toast via interceptor
       successMessage: "Password updated successfully.",
       ...(config.meta || {}),
     },
