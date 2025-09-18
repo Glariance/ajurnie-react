@@ -285,4 +285,33 @@ export async function resetPassword(
 }
 
 
+
+
+/**
+ * Change Plan
+ * Expects: plan, payment_method
+ */
+export type ChangePlanPayload = {
+  plan: "novice" | "trainer";
+  payment_method: string;
+};
+
+export async function changePlan(
+  payload: ChangePlanPayload,
+  config: AxiosRequestConfig = {}
+): Promise<any> {
+  await getCsrfCookie();
+  const response = await api.post("/api/change-plan", payload, {
+    ...config,
+    meta: {
+      successMessage: "Subscription updated successfully",
+      ...(config.meta || {}),
+    },
+  });
+  return response.data;
+}
+
+
+
+
 export default api;

@@ -26,6 +26,7 @@ import Dashboard from "./pages/account/Dashboard";
 import Profile from "./pages/account/Profile";
 import ChangePassword from "./pages/account/ChangePassword";
 import ResetPassword from "./pages/ResetPassword";
+import ChangePlan from "./pages/account/ChangePlan";
 // import GuestRoute from "./pages/GuestRoute";
 
 function App() {
@@ -107,6 +108,11 @@ function App() {
                         path="change-password"
                         element={<ChangePassword />}
                       />
+                      <Route 
+                      path="change-plan" 
+                      element={<ChangePlan/>}
+                      />
+
                     </Route>
                   </Routes>
                 </main>

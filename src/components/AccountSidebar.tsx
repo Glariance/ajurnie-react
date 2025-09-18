@@ -79,6 +79,15 @@ const AccountSidebar = ({ mockData, user, subscription }) => {
             Change Password
           </NavLink>
 
+          <NavLink
+            to="/account/change-plan"
+            className={({ isActive }) =>
+              `${baseClasses} ${isActive ? activeClasses : inactiveClasses}`
+            }
+            >
+              Billing
+          </NavLink>
+
           <button
             onClick={handleLogout}
             className="w-full block text-center py-2 px-4 rounded-lg bg-gray-700 text-white hover:bg-red-600 transition-colors"
