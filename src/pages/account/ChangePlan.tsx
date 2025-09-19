@@ -164,7 +164,7 @@ export default function ChangePlan() {
 
           {subscription && subscription.active ? (
             <p className="text-green-400">
-              ✅ You are already enrolled in{" "}
+               You are already enrolled in{" "}
               <span className="font-semibold">{subscription.plan}</span> (
               {subscription.price}). To change your plan, please cancel your
               current subscription first.

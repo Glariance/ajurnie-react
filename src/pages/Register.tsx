@@ -112,7 +112,9 @@ export default function Register() {
         },
       ];
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
@@ -155,10 +157,11 @@ export default function Register() {
     }
 
     // 1) Create payment method (client-side)
-    const { error: stripeError, paymentMethod } = await stripe.createPaymentMethod({
-      type: "card",
-      card: elements.getElement(CardElement)!,
-    });
+    const { error: stripeError, paymentMethod } =
+      await stripe.createPaymentMethod({
+        type: "card",
+        card: elements.getElement(CardElement)!,
+      });
 
     if (stripeError) {
       console.error(stripeError);
@@ -179,7 +182,15 @@ export default function Register() {
           payment_method: paymentMethod.id,
           interval: formData.interval as "monthly" | "yearly",
         } as any,
-        { meta: { successMessage: "Account created 🎉 Welcome to Ajurnie!" } }
+        {
+          meta: {
+            successMessage: `Payment successful! Your ${formData.interval} ${
+              selectedRole === "novice"
+                ? "Novice Membership"
+                : "Certified Trainer Membership"
+            } is now active. Welcome to Ajurnie`,
+          },
+        }
       );
 
       // Optional: tiny success visual on page (icon flash) while we redirect
@@ -206,10 +217,15 @@ export default function Register() {
             />
             <h2 className="text-2xl font-bold text-white">Create Account</h2>
             <p className="text-gray-400">
-              Try our gym classes free! Experience the energy, the trainers, and the
-              results then choose your plan:{" "}
-              <span className="text-red-400">Novice Membership $4.99/month</span> or{" "}
-              <span className="text-red-400">Certified Trainer $8.99/month</span>
+              Try our gym classes free! Experience the energy, the trainers, and
+              the results then choose your plan:{" "}
+              <span className="text-red-400">
+                Novice Membership $4.99/month
+              </span>{" "}
+              or{" "}
+              <span className="text-red-400">
+                Certified Trainer $8.99/month
+              </span>
             </p>
           </div>
 
@@ -270,10 +286,16 @@ export default function Register() {
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <form
+            onSubmit={handleSubmit}
+            className="grid grid-cols-1 md:grid-cols-2 gap-6"
+          >
             {/* Full Name */}
             <div>
-              <label htmlFor="fullname" className="block text-sm font-medium text-gray-300 mb-2">
+              <label
+                htmlFor="fullname"
+                className="block text-sm font-medium text-gray-300 mb-2"
+              >
                 Full Name
               </label>
               <div className="relative">
@@ -293,7 +315,10 @@ export default function Register() {
             {/* Membership Interval */}
             {isPostFounding && (
               <div>
-                <label htmlFor="interval" className="block text-sm font-medium text-gray-300 mb-2">
+                <label
+                  htmlFor="interval"
+                  className="block text-sm font-medium text-gray-300 mb-2"
+                >
                   Membership Interval
                 </label>
                 <select
@@ -311,7 +336,10 @@ export default function Register() {
 
             {/* Email */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-300 mb-2"
+              >
                 Email Address
               </label>
               <div className="relative">
@@ -330,7 +358,10 @@ export default function Register() {
 
             {/* Password */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-300 mb-2"
+              >
                 Password
               </label>
               <div className="relative">
@@ -349,7 +380,11 @@ export default function Register() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-400"
                 >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
                 </button>
               </div>
             </div>
@@ -378,7 +413,11 @@ export default function Register() {
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-400"
                 >
-                  {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
                 </button>
               </div>
             </div>
@@ -389,7 +428,11 @@ export default function Register() {
                 Card Details
               </label>
               <div className="p-3 bg-gray-700 border border-gray-600 rounded-lg">
-                <CardElement options={{ style: { base: { color: "#fff", fontSize: "16px" } } }} />
+                <CardElement
+                  options={{
+                    style: { base: { color: "#fff", fontSize: "16px" } },
+                  }}
+                />
               </div>
             </div>
 
@@ -402,7 +445,11 @@ export default function Register() {
               >
                 {loading
                   ? "Creating Account..."
-                  : `Register as ${selectedRole === "novice" ? "Novice Member" : "Certified Trainer"}`}
+                  : `Register as ${
+                      selectedRole === "novice"
+                        ? "Novice Member"
+                        : "Certified Trainer"
+                    }`}
               </button>
             </div>
           </form>
