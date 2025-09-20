@@ -71,7 +71,7 @@ export default function ChangePlan() {
           interval: form.interval,
           payment_method: paymentMethod.id,
         },
-        { meta: { successMessage: "Your plan has been updated 🎉" } }
+        { meta: { successMessage: "Your plan has been updated" } }
       );
 
       elements.getElement(CardElement)?.clear();

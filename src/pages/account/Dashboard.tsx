@@ -8,6 +8,7 @@ export default function Dashboard() {
   const [subscription, setSubscription] = useState<any>(null);
   const [showConfirm, setShowConfirm] = useState(false);
 
+  console.log("Subs:", subscription);
   // ✅ Fetch subscription using your API instance
   useEffect(() => {
     if (user) {
@@ -145,9 +146,14 @@ export default function Dashboard() {
                     {subscription.status}
                   </td>
                   <td className="px-4 py-3">{subscription.start_date}</td>
-                  <td className="px-4 py-3">
-                    {subscription.current_period_end}
-                  </td>
+                  <td className="px-4 py-3">{subscription.current_period_end}</td>
+                  {/* <td className="px-4 py-3">
+                    {subscription.current_period_end
+                      ? new Date(
+                          subscription.current_period_end
+                        ).toLocaleDateString()
+                      : "-"}
+                  </td> */}
                   {/* <td className="px-4 py-3">
                     {subscription.cancel_at || "-"}
                   </td> */}
