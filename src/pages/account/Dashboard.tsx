@@ -8,7 +8,6 @@ export default function Dashboard() {
   const [subscription, setSubscription] = useState<any>(null);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  console.log("Subs:", subscription);
   // ✅ Fetch subscription using your API instance
   useEffect(() => {
     if (user) {
